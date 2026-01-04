@@ -24,3 +24,13 @@ def get_api_key():
     key = API_KEYS[current]
     current = (current + 1) % len(API_KEYS)
     return key
+
+def log_api_usage(key, units):
+    from app.db import api_usage
+    from datetime import datetime
+    
+    api_usage.update_one(
+        {"key": key, "date": datetime.now().strftime("%Y-%m-%d")},
+        {"$inc": {"units": units}},
+        upsert=True
+    )

@@ -41,8 +41,17 @@ def get_songs():
     # but strictly returning stored fields is fine. 
     # Must convert ObjectId to string if we return _id, 
     # so easier to exclude _id for this simple example.
-    results = list(songs.find(query, {"_id": 0}).skip(skip).limit(limit))
-    
+    # Fallback Logic:
+    # If a mood is specified but we get very few results (< 5),
+    # fetch 'general' mood songs for the same language to ensure the user sees content.
+    if mood and len(results) < 5:
+        print(f"Low results for {mood}, fetching fallback...")
+        fallback_query = query.copy()
+        fallback_query['mood'] = 'general'
+        # Fetch generic songs, exclude ones we already have (simplification: just append)
+        fallback_results = list(songs.find(fallback_query, {"_id": 0}).limit(limit - len(results)))
+        results.extend(fallback_results)
+
     return jsonify({
         "count": len(results),
         "page": page,
@@ -51,9 +60,8 @@ def get_songs():
 
 def run_collection_task():
     print("Starting background collection...")
-    for lang, queries in LANGUAGES.items():
-        for q in queries:
-            collect(q)
+    from app.collector import collect_all
+    collect_all()
     print("Background collection finished.")
 
 @app.route('/api/trigger-collect', methods=['POST'])
