@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from app.db import songs
-from app.collector import collect
+
 from app.config import LANGUAGES
 import threading
 
@@ -41,6 +41,11 @@ def get_songs():
     # but strictly returning stored fields is fine. 
     # Must convert ObjectId to string if we return _id, 
     # so easier to exclude _id for this simple example.
+    # Fallback Logic:
+    # If a mood is specified but we get very few results (< 5),
+    # Execute Query
+    results = list(songs.find(query, {"_id": 0}).skip(skip).limit(limit))
+
     # Fallback Logic:
     # If a mood is specified but we get very few results (< 5),
     # fetch 'general' mood songs for the same language to ensure the user sees content.
