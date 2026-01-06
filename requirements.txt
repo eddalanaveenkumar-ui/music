@@ -6,5 +6,3 @@ gunicorn
 python-dotenv
 flask-cors
 isodate
-yt-dlp
-requests
