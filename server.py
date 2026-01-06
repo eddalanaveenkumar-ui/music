@@ -16,22 +16,42 @@ def resolve_audio():
     
     try:
         import requests
-        # Use Piped API to get audio streams without using yt-dlp or hitting YouTube directly
-        # This bypasses the "Sign in" bot detection and avoids CORS issues on the frontend
-        piped_url = f"https://pipedapi.kavin.rocks/streams/{video_id}"
-        resp = requests.get(piped_url, timeout=10)
-        resp.raise_for_status()
+        # List of reliable Piped instances to try
+        piped_instances = [
+            "https://pipedapi.kavin.rocks",
+            "https://pipedapi.adminforge.de",
+            "https://api.piped.io",
+            "https://piped-api.garudalinux.org",
+            "https://pipedapi.drgns.space"
+        ]
         
-        data = resp.json()
-        audio_streams = data.get('audioStreams', [])
+        last_error = None
         
-        if not audio_streams:
-             return jsonify({"error": "No audio streams found"}), 404
-             
-        # Prefer M4A for better compatibility/efficiency
-        best_stream = next((s for s in audio_streams if s.get('format') == 'M4A'), audio_streams[0])
-        
-        return jsonify({"url": best_stream['url']})
+        for instance in piped_instances:
+            try:
+                # Use Piped API to get audio streams without using yt-dlp or hitting YouTube directly
+                # This bypasses the "Sign in" bot detection and avoids CORS issues on the frontend
+                piped_url = f"{instance}/streams/{video_id}"
+                print(f"Trying Piped instance: {instance}")
+                resp = requests.get(piped_url, timeout=5) # 5s timeout per instance
+                resp.raise_for_status()
+                
+                data = resp.json()
+                audio_streams = data.get('audioStreams', [])
+                
+                if audio_streams:
+                    # Found streams!
+                    # Prefer M4A for better compatibility/efficiency
+                    best_stream = next((s for s in audio_streams if s.get('format') == 'M4A'), audio_streams[0])
+                    return jsonify({"url": best_stream['url']})
+            except Exception as e:
+                print(f"Failed {instance}: {e}")
+                last_error = e
+                continue # Try next instance
+
+        # If loop finishes without return, all failed
+        return jsonify({"error": f"All Piped instances failed. Last error: {str(last_error)}"}), 500
+
 
     except Exception as e:
         print(f"Error resolving audio for {video_id}: {e}")
