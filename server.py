@@ -63,6 +63,29 @@ def get_songs():
         "results": results
     })
 
+@app.route('/api/resolve')
+def resolve_url():
+    video_id = request.args.get('id')
+    if not video_id:
+        return jsonify({"error": "Missing video id"}), 400
+    
+    try:
+        import yt_dlp
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'quiet': True,
+            'no_warnings': True,
+            'noplaylist': True,
+            'skip_download': True
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            url = f"https://www.youtube.com/watch?v={video_id}"
+            info = ydl.extract_info(url, download=False)
+            return jsonify({"url": info['url']})
+    except Exception as e:
+        print(f"Error resolving URL for {video_id}: {e}")
+        return jsonify({"error": str(e)}), 500
+
 def run_collection_task():
     print("Starting background collection...")
     from app.collector import collect_all
