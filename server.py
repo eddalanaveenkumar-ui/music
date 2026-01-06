@@ -2,7 +2,36 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from app.db import songs
 
-from app.config import LANGUAGES
+@app.route('/api/resolve')
+def resolve_audio():
+    video_id = request.args.get('id')
+    if not video_id:
+        return jsonify({"error": "Missing video id"}), 400
+    
+    try:
+        import requests
+        # Use Piped API to get audio streams without using yt-dlp or hitting YouTube directly
+        # This bypasses the "Sign in" bot detection and avoids CORS issues on the frontend
+        piped_url = f"https://pipedapi.kavin.rocks/streams/{video_id}"
+        resp = requests.get(piped_url, timeout=10)
+        resp.raise_for_status()
+        
+        data = resp.json()
+        audio_streams = data.get('audioStreams', [])
+        
+        if not audio_streams:
+             return jsonify({"error": "No audio streams found"}), 404
+             
+        # Prefer M4A for better compatibility/efficiency
+        best_stream = next((s for s in audio_streams if s.get('format') == 'M4A'), audio_streams[0])
+        
+        return jsonify({"url": best_stream['url']})
+
+    except Exception as e:
+        print(f"Error resolving audio for {video_id}: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 import threading
 
 app = Flask(__name__)
