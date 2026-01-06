@@ -2,6 +2,12 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from app.db import songs
 
+from app.config import LANGUAGES
+import threading
+
+app = Flask(__name__)
+CORS(app) # Enable CORS for all routes
+
 @app.route('/api/resolve')
 def resolve_audio():
     video_id = request.args.get('id')
@@ -32,10 +38,7 @@ def resolve_audio():
         return jsonify({"error": str(e)}), 500
 
 
-import threading
 
-app = Flask(__name__)
-CORS(app) # Enable CORS for all routes
 
 @app.route('/')
 def home():
