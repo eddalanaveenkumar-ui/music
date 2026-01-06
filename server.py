@@ -63,27 +63,36 @@ def get_songs():
         "results": results
     })
 
-@app.route('/api/resolve')
-def resolve_url():
+@app.route('/api/stream')
+def stream_audio():
     video_id = request.args.get('id')
     if not video_id:
         return jsonify({"error": "Missing video id"}), 400
     
     try:
         import yt_dlp
+        from flask import redirect
+
+        # 1. Get the direct URL using yt-dlp
         ydl_opts = {
-            'format': 'bestaudio/best',
+            'format': 'bestaudio[ext=m4a]/bestaudio/best',
             'quiet': True,
             'no_warnings': True,
             'noplaylist': True,
             'skip_download': True
         }
+        
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             url = f"https://www.youtube.com/watch?v={video_id}"
             info = ydl.extract_info(url, download=False)
-            return jsonify({"url": info['url']})
+            playback_url = info['url']
+            
+        # 2. Redirect the client to the YouTube CDN URL
+        # This ensures Client -> YouTube CDN data flow
+        return redirect(playback_url)
+
     except Exception as e:
-        print(f"Error resolving URL for {video_id}: {e}")
+        print(f"Error resolving audio for {video_id}: {e}")
         return jsonify({"error": str(e)}), 500
 
 def run_collection_task():
